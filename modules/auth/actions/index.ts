@@ -4,12 +4,7 @@ import {db} from "@/lib/db";
 
 export const getUserById = async (id:string) =>{
     try{
-        const user = await db.user.findUnique({
-            where:{id},
-            include:{
-                accounts:true
-            }
-        })
+        const user = await db.user.findUnique({ where: { id }, include: { accounts: true } })
         return user;
     }catch(error){
         console.log(error)
@@ -34,7 +29,7 @@ export const getAccountByUserId = async(userId:string)=>{
     }
 }
 
-export const getCuurentUser = async()=>{
+export const currentUser = async()=>{
  const user = await auth();
  return user?.user;
 }
