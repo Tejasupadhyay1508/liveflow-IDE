@@ -1,85 +1,94 @@
-import {useState, useEffect, useCallback} from 'react'
-import {WebContainer} from '@webcontainer/api'
-import { TemplateFolder } from '@/modules/playground/lib/path-to-json'
+import { useState, useEffect, useCallback } from "react";
+import { WebContainer } from "@webcontainer/api";
+import { TemplateFolder } from "@/modules/playground/lib/path-to-json";
 
-interface UseWebContainerProps{
-    templateData: TemplateFolder
+interface UseWebContainerProps {
+  templateData: TemplateFolder;
 }
 
-interface UseWebContainerReturn{
-    serverUrl:string | null;
-    isLoading: boolean;
-    error:string | null;
-    instance:WebContainer | null;
-    writeFileSync:(path:string, content:string)=>Promise<void>;
-    destory:()=>void;
+interface UseWebContaierReturn {
+  serverUrl: string | null;
+  isLoading: boolean;
+  error: string | null;
+  instance: WebContainer | null;
+  writeFileSync: (path: string, content: string) => Promise<void>;
+  destory: () => void;
 }
 
-export const useWebContainer = ({templateData}:UseWebContainerProps):UseWebContainerReturn => {
-    const [serverUrl, setServerUrl] = useState<string | null>(null);
+export const useWebContainer = ({
+  templateData,
+}: UseWebContainerProps): UseWebContaierReturn => {
+  const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [instance, setInstance] = useState<WebContainer | null>(null);
 
-  useEffect(()=>{
+  useEffect(() => {
     let mounted = true;
+
     async function initializeWebContainer() {
-        try{
-            const webcontainerInstance = await WebContainer.boot();
-            setInstance(webcontainerInstance);
-            setIsLoading(false)
-        }catch(error){
-            console.error('failed to initailaze webcontainer:',error);
-            if(mounted){
-                 setError(error instanceof Error ? error.message : 'Failed to initialize WebContainer');
-            setIsLoading(false)
-            }
+      try {
+        const webcontainerInstance = await WebContainer.boot();
+
+        if (!mounted) return;
+
+        setInstance(webcontainerInstance);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Failed to initialize WebContainer:", error);
+        if (mounted) {
+          setError(
+            error instanceof Error
+              ? error.message
+              : "Failed to initialize WebContainer"
+          );
+          setIsLoading(false);
         }
+      }
     }
+
     initializeWebContainer();
 
-    return()=>{
-        mounted = false;
-        if(instance){
-            instance.teardown();
-        }
-    }
+    return () => {
+      mounted = false;
+      if (instance) {
+        instance.teardown();
+      }
+    };
+  }, []);
 
-  },[]);
+  const writeFileSync = useCallback(
+    async (path: string, content: string): Promise<void> => {
+      if (!instance) {
+        throw new Error("WebContainer instance is not available");
+      }
 
-  const writeFileSync = useCallback(async(path:string, content:string):Promise<void>=>{
-    if(!instance){
-        throw new Error('WebContainer instance is not initialized');
-    }
-    try{
+      try {
         const pathParts = path.split("/");
         const folderPath = pathParts.slice(0, -1).join("/");
-        if(folderPath){
-            await instance.fs.mkdir(folderPath, {recursive:true}); //it create folder structure
+
+        if (folderPath) {
+          await instance.fs.mkdir(folderPath, { recursive: true }); // Create folder structure recursively
         }
 
         await instance.fs.writeFile(path, content);
-    }catch(error){
-         const errorMessage =
-          error instanceof Error ? error.message : "Failed to write file";
-        console.error(`Failed to write file at ${path}:`, error);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to write file";
+        console.error(`Failed to write file at ${path}:`, err);
         throw new Error(`Failed to write file at ${path}: ${errorMessage}`);
+      }
+    },
+    [instance]
+  );
 
-    }
-
-  },[instance])
-  
-  
   const destory = useCallback(()=>{
-      if(instance){
+    if(instance){
         instance.teardown()
         setInstance(null);
         setServerUrl(null)
     }
-},[instance])
+  },[instance])
 
- return {serverUrl , isLoading , error , instance , writeFileSync , destory}
-
+  return {serverUrl , isLoading , error , instance , writeFileSync , destory}
 };
-
-
