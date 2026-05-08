@@ -1,11 +1,11 @@
 import React from 'react';
 
 const AuthLayout: React.FC<{children:React.ReactNode}> = ({children}) => {
-    return(
-        <main className="flex justify-center item-center h-screen flex-col bg-zinc-800">
+    return (
+        <div className="min-h-screen bg-slate-950 text-white">
             {children}
-        </main>
-    )
-}
+        </div>
+    );
+};
 
-export default AuthLayout
+export default AuthLayout;
